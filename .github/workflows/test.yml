@@ -15,6 +15,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      
       - name: Disable Windows Firewall
         run: |
           Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
@@ -62,9 +63,16 @@ jobs:
           java-version: '21'
           cache: 'maven'
 
-      - name: Run test with JDK (Debug Mode)
+      # Testcontainersの実行
+      - name: Run test with JDK
         env:
           DOCKER_HOST: tcp://${{ env.WSL_IP }}:2375
         run: |
           echo "Using DOCKER_HOST: $env:DOCKER_HOST"
-          ./mvnw clean test "-Ddocker.api.version=1.44" "-Dorg.testcontainers.dockerclient.DockerClientProviderStrategy=org.testcontainers.dockerclient.EnvironmentAndSystemPropertyClientProviderStrategy" -X
+          $propsContent = "docker.client.strategy=org.testcontainers.dockerclient.EnvironmentAndSystemPropertyClientProviderStrategy`ndocker.api.version=1.44"
+          Set-Content -Path "$env:USERPROFILE\.testcontainers.properties" -Value $propsContent
+          
+          echo "Created .testcontainers.properties with content:"
+          Get-Content "$env:USERPROFILE\.testcontainers.properties"
+
+          ./mvnw clean test -X
