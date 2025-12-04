@@ -15,11 +15,6 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Disable Windows Firewall
-        run: |
-          Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
-          echo "Firewall disabled."
 
       - name: Setup WSL 2 and Ubuntu Linux distribution
         uses: Vampire/setup-wsl@v5
@@ -46,14 +41,12 @@ jobs:
       - name: Get WSL IP Address
         run: |
           $WSL_IP = (wsl --exec hostname -I).Trim().Split(" ")[0]
-          echo "WSL_IP detected: $WSL_IP"
           echo "WSL_IP=$WSL_IP" >> $env:GITHUB_ENV
 
       - name: Test Docker CLI on Windows Server without GUI
         env:
           DOCKER_HOST: tcp://${{ env.WSL_IP }}:2375
         run: |
-          echo "Testing connection to $env:DOCKER_HOST"
           docker version
           docker run hello-world:linux
 
@@ -63,16 +56,8 @@ jobs:
           java-version: '21'
           cache: 'maven'
 
-      # Testcontainersの実行
       - name: Run test with JDK
         env:
           DOCKER_HOST: tcp://${{ env.WSL_IP }}:2375
         run: |
-          echo "Using DOCKER_HOST: $env:DOCKER_HOST"
-          $propsContent = "docker.client.strategy=org.testcontainers.dockerclient.EnvironmentAndSystemPropertyClientProviderStrategy`ndocker.api.version=1.44"
-          Set-Content -Path "$env:USERPROFILE\.testcontainers.properties" -Value $propsContent
-          
-          echo "Created .testcontainers.properties with content:"
-          Get-Content "$env:USERPROFILE\.testcontainers.properties"
-
-          ./mvnw clean test -X
+          ./mvnw clean test -X "-Dorg.testcontainers.dockerclient.DockerClientProviderStrategy=org.testcontainers.dockerclient.EnvironmentAndSystemPropertyClientProviderStrategy"
