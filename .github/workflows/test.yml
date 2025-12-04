@@ -16,6 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Disable Windows Firewall
+        run: |
+          Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
+          echo "Firewall disabled."
+
       - name: Setup WSL 2 and Ubuntu Linux distribution
         uses: Vampire/setup-wsl@v5
         with:
@@ -48,6 +53,7 @@ jobs:
         env:
           DOCKER_HOST: tcp://${{ env.WSL_IP }}:2375
         run: |
+          echo "Testing connection to $env:DOCKER_HOST"
           docker version
           docker run hello-world:linux
 
@@ -59,7 +65,7 @@ jobs:
 
       - name: Run test with JDK
         env:
-          # 【変更点4】取得した動的IPを使用
           DOCKER_HOST: tcp://${{ env.WSL_IP }}:2375
-        # ローカルでの検証結果に基づき、念のためAPIバージョン指定も追加しておくのが安全です（不要なら外してください）
-        run: ./mvnw clean test "-Ddocker.api.version=1.44"
+        run: |
+          echo "Using DOCKER_HOST: $env:DOCKER_HOST"
+          ./mvnw clean test "-Ddocker.api.version=1.44"
