@@ -15,6 +15,11 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Disable Windows Firewall
+        run: |
+          Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
+          echo "Firewall disabled."
 
       - name: Setup WSL 2 and Ubuntu Linux distribution
         uses: Vampire/setup-wsl@v5
