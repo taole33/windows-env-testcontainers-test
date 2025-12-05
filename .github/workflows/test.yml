@@ -36,26 +36,20 @@ jobs:
           sudo sed -i 's|-H fd://|-H fd:// -H tcp://0.0.0.0:12375|' /usr/lib/systemd/system/docker.service
           sudo systemctl daemon-reload
           sudo systemctl restart docker.service
-          sleep 10
+          sleep 5
+          curl -v http://localhost:12375/version || echo "Docker daemon inside WSL is not responding yet"
 
-      - name: Disable Windows Firewall
-        shell: pwsh
-        run: Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
-
-      - name: Configure Docker Host IP
+      - name: Configure Windows Port Forwarding to WSL
         shell: pwsh
         run: |
+          Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
           $WSL_IP = (wsl hostname -I).Split(" ")[0].Trim()
           Write-Host "WSL IP detected: $WSL_IP"
-          "DOCKER_HOST=tcp://${WSL_IP}:12375" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
-      - name: Configure Docker Host IP
-        shell: pwsh
-        run: |
-          $WSL_IP = (wsl hostname -I).Split(" ")[0].Trim()
-          Write-Host "WSL IP detected: $WSL_IP"
-          "DOCKER_HOST=tcp://${WSL_IP}:12375" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
+          netsh interface portproxy add v4tov4 listenport=12375 listenaddress=0.0.0.0 connectport=12375 connectaddress=$WSL_IP
+          netsh interface portproxy show all
+          "DOCKER_HOST=tcp://127.0.0.1:12375" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
 
-      - name: Test Docker CLI on Windows Server without GUI
+      - name: Test Docker CLI on Windows Server
         run: |
           docker version
           docker run hello-world:linux
