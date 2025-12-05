@@ -38,6 +38,16 @@ jobs:
           sudo systemctl restart docker.service
           sleep 10
 
+      - name: Disable Windows Firewall
+        shell: pwsh
+        run: Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
+
+      - name: Configure Docker Host IP
+        shell: pwsh
+        run: |
+          $WSL_IP = (wsl hostname -I).Split(" ")[0].Trim()
+          Write-Host "WSL IP detected: $WSL_IP"
+          "DOCKER_HOST=tcp://${WSL_IP}:12375" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
       - name: Configure Docker Host IP
         shell: pwsh
         run: |
