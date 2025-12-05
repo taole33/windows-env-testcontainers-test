@@ -73,4 +73,4 @@ jobs:
         run: ./gradlew.bat publishToMavenLocal -x test -x javadoc -x groovydoc
 
       - name: Run test with JDK
-        run: ./mvnw clean test "-Dtestcontainers.version=2.0.2-SNAPSHOT"
+        run: ./mvnw clean test "-Dtestcontainers.version=2.0.2-SNAPSHOT" "-Djava.net.preferIPv4Stack=true"
