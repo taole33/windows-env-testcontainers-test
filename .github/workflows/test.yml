@@ -37,30 +37,35 @@ jobs:
           sudo systemctl daemon-reload
           sudo systemctl restart docker.service
           sleep 10
+
+      - name: Configure Docker Host IP
+        shell: pwsh
+        run: |
+          $WSL_IP = (wsl hostname -I).Split(" ")[0].Trim()
+          Write-Host "WSL IP detected: $WSL_IP"
+          "DOCKER_HOST=tcp://${WSL_IP}:12375" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8
+
       - name: Test Docker CLI on Windows Server without GUI
-        env:
-          DOCKER_HOST: tcp://127.0.0.1:12375
         run: |
           docker version
           docker run hello-world:linux
+
       - uses: actions/setup-java@v4
         with:
           distribution: 'microsoft'
           java-version: '21'
           cache: 'maven'
 
-
       - name: Checkout Modified Testcontainers
         uses: actions/checkout@v4
         with:
           repository: taole33/testcontainers-java 
-          ref: main                          
+          ref: main                           
           path: modified-tc
+          
       - name: Install Modified Testcontainers to Local Maven Repo
         working-directory: ./modified-tc
         run: ./gradlew.bat publishToMavenLocal -x test -x javadoc -x groovydoc
 
       - name: Run test with JDK
-        env:
-          DOCKER_HOST: tcp://127.0.0.1:12375
         run: ./mvnw clean test "-Dtestcontainers.version=2.0.2-SNAPSHOT"
