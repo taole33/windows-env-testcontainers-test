@@ -61,4 +61,4 @@ jobs:
       - name: Run test with JDK
         env:
           DOCKER_HOST: tcp://127.0.0.1:12375
-        run: ./mvnw clean test -Dtestcontainers.version=2.0.2-SNAPSHOT
+        run: ./mvnw clean test "-Dtestcontainers.version=2.0.2-SNAPSHOT"
