@@ -1,10 +1,10 @@
-name: Test CI with Local Changes
+name: Test CI
 
 on:
   push:
     branches: [ master ]
   workflow_dispatch:
-
+  
 concurrency:
   group: test-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -20,7 +20,6 @@ jobs:
         with:
           distribution: 'Ubuntu-24.04'
           use-cache: 'true'
-     
       - name: Setup Docker daemon on Linux distribution on WSL without GUI
         shell: wsl-bash {0}
         run: |
@@ -33,49 +32,21 @@ jobs:
           echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
           sudo apt-get update
           sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
-          sudo sed -i 's|-H fd://|-H fd:// -H tcp://0.0.0.0:12375|' /usr/lib/systemd/system/docker.service
-          
+          sudo sed -i 's|-H fd://|-H fd:// -H tcp://127.0.0.1:12375|' /usr/lib/systemd/system/docker.service
           sudo systemctl daemon-reload
           sudo systemctl restart docker.service
-
-          echo "Waiting for Docker daemon to be ready on port 12375..."
-          for i in {1..30}; do
-            if curl -s http://127.0.0.1:12375/version > /dev/null; then
-              echo "Docker is ready!"
-              exit 0
-            fi
-            echo "Waiting... ($i/30)"
-            sleep 1
-          done
-          echo "Docker failed to start on port 12375"
-          sudo systemctl status docker.service
-          exit 1
-          
       - name: Test Docker CLI on Windows Server without GUI
         env:
           DOCKER_HOST: tcp://127.0.0.1:12375
         run: |
           docker version
           docker run hello-world:linux
-
       - uses: actions/setup-java@v4
         with:
           distribution: 'microsoft'
-          java-version: '17' 
+          java-version: '21'
           cache: 'maven'
-
-
-      - name: Checkout Modified Testcontainers
-        uses: actions/checkout@v4
-        with:
-          repository: taole33/testcontainers-java 
-          ref: main                          
-          path: modified-tc
-      - name: Install Modified Testcontainers to Local Maven Repo
-        working-directory: ./modified-tc
-        run: ./gradlew.bat publishToMavenLocal -x test -x javadoc -x groovydoc
-
       - name: Run test with JDK
         env:
           DOCKER_HOST: tcp://127.0.0.1:12375
-        run: ./mvnw clean test -Dtestcontainers.version=2.0.2-SNAPSHOT
+        run: ./mvnw clean test
