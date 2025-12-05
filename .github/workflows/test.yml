@@ -1,4 +1,4 @@
-name: Test CI
+name: Test CI with Local Changes
 
 on:
   push:
@@ -15,11 +15,13 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Disable Windows Firewall
-        run: |
-          Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
-          echo "Firewall disabled."
+
+      - name: Checkout Modified Testcontainers
+        uses: actions/checkout@v4
+        with:
+          repository: taole33/testcontainers-java 
+          ref: main                         
+          path: modified-tc
 
       - name: Setup WSL 2 and Ubuntu Linux distribution
         uses: Vampire/setup-wsl@v5
@@ -39,18 +41,13 @@ jobs:
           echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
           sudo apt-get update
           sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
-          sudo sed -i 's|-H fd://|-H fd:// -H tcp://0.0.0.0:2375|' /usr/lib/systemd/system/docker.service
+          sudo sed -i 's|-H fd://|-H fd:// -H tcp://127.0.0.1:12375|' /usr/lib/systemd/system/docker.service
           sudo systemctl daemon-reload
           sudo systemctl restart docker.service
 
-      - name: Get WSL IP Address
-        run: |
-          $WSL_IP = (wsl --exec hostname -I).Trim().Split(" ")[0]
-          echo "WSL_IP=$WSL_IP" >> $env:GITHUB_ENV
-
       - name: Test Docker CLI on Windows Server without GUI
         env:
-          DOCKER_HOST: tcp://${{ env.WSL_IP }}:2375
+          DOCKER_HOST: tcp://127.0.0.1:12375
         run: |
           docker version
           docker run hello-world:linux
@@ -61,8 +58,12 @@ jobs:
           java-version: '21'
           cache: 'maven'
 
+      - name: Install Modified Testcontainers to Local Maven Repo
+        working-directory: ./modified-tc
+        run: ./gradlew.bat publishToMavenLocal -DskipTests
+
+
       - name: Run test with JDK
         env:
-          DOCKER_HOST: tcp://${{ env.WSL_IP }}:2375
-        run: |
-          ./mvnw clean test -X "-Dorg.testcontainers.dockerclient.DockerClientProviderStrategy=org.testcontainers.dockerclient.EnvironmentAndSystemPropertyClientProviderStrategy"
+          DOCKER_HOST: tcp://127.0.0.1:12375
+        run: ./mvnw clean test -Dtestcontainers.version=2.0.2-SNAPSHOT
