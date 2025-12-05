@@ -54,13 +54,12 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: 'microsoft'
-          java-version: '21'
+          java-version: '17' 
           cache: 'maven'
 
       - name: Install Modified Testcontainers to Local Maven Repo
         working-directory: ./modified-tc
-        run: ./gradlew.bat publishToMavenLocal -DskipTests
-
+        run: ./gradlew.bat publishToMavenLocal -x test -x javadoc -x groovydoc
 
       - name: Run test with JDK
         env:
