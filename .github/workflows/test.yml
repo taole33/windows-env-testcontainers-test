@@ -1,4 +1,4 @@
-name: Test CI
+name: Test CI with Local Changes
 
 on:
   push:
@@ -46,7 +46,19 @@ jobs:
           distribution: 'microsoft'
           java-version: '21'
           cache: 'maven'
+
+
+      - name: Checkout Modified Testcontainers
+        uses: actions/checkout@v4
+        with:
+          repository: taole33/testcontainers-java 
+          ref: main                          
+          path: modified-tc
+      - name: Install Modified Testcontainers to Local Maven Repo
+        working-directory: ./modified-tc
+        run: ./gradlew.bat publishToMavenLocal -x test -x javadoc -x groovydoc
+
       - name: Run test with JDK
         env:
           DOCKER_HOST: tcp://127.0.0.1:12375
-        run: ./mvnw clean test
+        run: ./mvnw clean test -Dtestcontainers.version=2.0.2-SNAPSHOT
