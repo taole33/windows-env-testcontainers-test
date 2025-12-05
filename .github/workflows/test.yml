@@ -28,7 +28,7 @@ jobs:
         with:
           distribution: 'Ubuntu-24.04'
           use-cache: 'true'
-
+      
       - name: Setup Docker daemon on Linux distribution on WSL without GUI
         shell: wsl-bash {0}
         run: |
@@ -42,7 +42,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
           
-          sudo sed -i 's|-H fd://|-H fd:// -H tcp://127.0.0.1:12375|' /usr/lib/systemd/system/docker.service
+          sudo sed -i 's|-H fd://|-H fd:// -H tcp://0.0.0.0:12375|' /usr/lib/systemd/system/docker.service
+          
           sudo systemctl daemon-reload
           sudo systemctl restart docker.service
 
@@ -58,7 +59,7 @@ jobs:
           echo "Docker failed to start on port 12375"
           sudo systemctl status docker.service
           exit 1
-
+          
       - name: Test Docker CLI on Windows Server without GUI
         env:
           DOCKER_HOST: tcp://127.0.0.1:12375
